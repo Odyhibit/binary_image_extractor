@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Binary Image Decoder</title>
+  <style>
+    body { font-family: sans-serif; padding: 1em; }
+    canvas { border: 1px solid #ccc; margin-top: 1em; }
+    textarea { width: 100%; height: 100px; margin-top: 1em; }
+  </style>
+</head>
+<body>
+  <h1>Binary Image Decoder</h1>
+
+  <label>Upload Image: <input type="file" id="imageInput" accept="image/*" /></label><br><br>
+  <label>Rows: <input type="number" id="rows" value="10" /></label>
+  <label>Columns: <input type="number" id="cols" value="10" /></label>
+  <button onclick="decodeImage()">Decode</button>
+
+  <canvas id="canvas"></canvas>
+  <textarea id="output" readonly></textarea>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let image = new Image();
+
+    document.getElementById("imageInput").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          image.onload = () => {
+            canvas.width = image.width;
+            canvas.height = image.height;
+            ctx.drawImage(image, 0, 0);
+          };
+          image.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function decodeImage() {
+      const rows = parseInt(document.getElementById("rows").value);
+      const cols = parseInt(document.getElementById("cols").value);
+      if (!rows || !cols) {
+        alert("Please enter valid rows and columns.");
+        return;
+      }
+
+      const cellWidth = canvas.width / cols;
+      const cellHeight = canvas.height / rows;
+      let binary = "";
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = Math.floor(c * cellWidth + cellWidth / 2);
+          const y = Math.floor(r * cellHeight + cellHeight / 2);
+          const pixel = ctx.getImageData(x, y, 1, 1).data;
+          const brightness = (pixel[0] + pixel[1] + pixel[2]) / 3;
+          binary += brightness < 128 ? "1" : "0";
+        }
+      }
+
+      document.getElementById("output").value = binary;
+    }
+  </script>
+</body>
+</html>
