@@ -78,18 +78,35 @@
       outline: none;
       border: 2px solid var(--accent);
     }
+    .zoom-container {
+      display: flex;
+      align-items: center;
+      margin: 1em 0;
+      width: 100%;
+      max-width: 300px;
+    }
+    .zoom-container label {
+      margin: 0 1em 0 0;
+      white-space: nowrap;
+    }
+    input[type="range"] {
+      flex-grow: 1;
+    }
+    .zoom-value {
+      margin-left: 0.5em;
+      min-width: 3em;
+      text-align: right;
+    }
     .inline-inputs {
-  display: flex;
-  gap: 1em;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap; /* optional: allows stacking on narrow screens */
-}
-
-.inline-inputs label {
-  margin: 0.5em 0;
-}
-
+      display: flex;
+      gap: 1em;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap; /* optional: allows stacking on narrow screens */
+    }
+    .inline-inputs label {
+      margin: 0.5em 0;
+    }
     button {
       margin: 1.4em 0 1em 0;
       padding: 0.7em 2.2em;
@@ -109,16 +126,19 @@
       transform: translateY(-1px) scale(1.03);
       box-shadow: 0 7px 24px #0005;
     }
-    canvas {
-      display: block;
+    .canvas-container {
+      position: relative;
       margin: 1em 0 0.4em 0;
       background: var(--light);
-      border-radius: 3px;
       border: 2px solid var(--accent);
+      border-radius: 3px;
       box-shadow: 0 1px 8px #0002;
+      overflow: hidden;
       max-width: 100%;
-      height: auto;
-      transition: box-shadow 0.2s;
+      transition: width 0.2s, height 0.2s;
+    }
+    canvas {
+      display: block;
     }
     textarea {
       width: 100%;
@@ -140,6 +160,28 @@
       border: 2px solid var(--accent);
       background: #12343844;
     }
+    .margin-inputs {
+      display: flex;
+      gap: 1em;
+      flex-wrap: wrap;
+      margin-top: 1em;
+    }
+    .margin-inputs label {
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
+      color: var(--light);
+      font-weight: 500;
+    }
+    .margin-inputs input {
+      width: 4em;
+      padding: 0.3em;
+      border-radius: 0.4em;
+      border: 1px solid var(--secondary);
+      background: var(--light);
+      color: var(--primary);
+    }
+
     /* Responsive */
     @media (max-width: 600px) {
       .container {
@@ -167,9 +209,25 @@
       <label>Columns:
         <input type="number" id="cols" value="" placeholder="Auto" />
       </label>
+      <label><input type="checkbox" id="showDebugDots" /> Show sample dots</label>
+    </div>
+    <div class="margin-inputs">
+      <label>Top: <input type="number" id="marginTop" value="0" /></label>
+      <label>Bottom: <input type="number" id="marginBottom" value="0" /></label>
+      <label>Left: <input type="number" id="marginLeft" value="0" /></label>
+      <label>Right: <input type="number" id="marginRight" value="0" /></label>
+    </div>
+
+
+    <div class="canvas-container" id="canvasContainer">
+      <canvas id="canvas"></canvas>
+    </div>
+        <div class="zoom-container">
+      <label for="zoomSlider">Zoom:</label>
+      <input type="range" id="zoomSlider" min="100" max="500" value="100" step="10" />
+      <span class="zoom-value" id="zoomValue">100%</span>
     </div>
     <button onclick="decodeImage()">Decode</button>
-    <canvas id="canvas"></canvas>
     <label for="output">ASCII Output</label>
     <textarea id="output" readonly></textarea>
     <label for="binaryGrid">Binary Grid</label>
@@ -178,8 +236,47 @@
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
+    const canvasContainer = document.getElementById("canvasContainer");
+    const zoomSlider = document.getElementById("zoomSlider");
+    const zoomValue = document.getElementById("zoomValue");
     let image = new Image();
     let rows = 0, cols = 0;
+    let currentZoom = 100;
+    let originalWidth = 0;
+    let originalHeight = 0;
+
+    // Initialize zoom functionality
+    zoomSlider.addEventListener("input", function() {
+      currentZoom = parseInt(this.value);
+      zoomValue.textContent = currentZoom + "%";
+      applyZoom();
+    });
+
+    function applyZoom() {
+      if (!originalWidth || !originalHeight) return;
+
+      const scale = currentZoom / 100;
+
+      // Calculate new dimensions based on zoom level
+      const newWidth = originalWidth * scale;
+      const newHeight = originalHeight * scale;
+
+      // Resize the canvas
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+
+      // Resize the container to match the canvas
+      canvasContainer.style.width = newWidth + "px";
+      canvasContainer.style.height = newHeight + "px";
+
+      // Redraw the image at the new size
+      ctx.drawImage(image, 0, 0, newWidth, newHeight);
+
+      // If we've already drawn a grid, redraw it
+      if (rows > 0 && cols > 0) {
+        drawGridOverlay(rows, cols);
+      }
+    }
 
     document.getElementById("imageInput").addEventListener("change", function(e) {
       const file = e.target.files[0];
@@ -187,9 +284,19 @@
         const reader = new FileReader();
         reader.onload = function(event) {
           image.onload = () => {
-            canvas.width = image.width;
-            canvas.height = image.height;
-            ctx.drawImage(image, 0, 0);
+            // Store original dimensions
+            originalWidth = image.width;
+            originalHeight = image.height;
+
+            // Set initial canvas size
+            canvas.width = originalWidth;
+            canvas.height = originalHeight;
+
+            // Set container size to match canvas
+            canvasContainer.style.width = originalWidth + "px";
+            canvasContainer.style.height = originalHeight + "px";
+
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             rows = estimateGridLines(imageData, true);
@@ -197,6 +304,11 @@
             document.getElementById("rows").value = rows;
             document.getElementById("cols").value = cols;
             drawGridOverlay(rows, cols);
+
+            // Reset zoom to 100% when loading a new image
+            zoomSlider.value = 100;
+            currentZoom = 100;
+            zoomValue.textContent = "100%";
           };
           image.src = event.target.result;
         };
@@ -214,16 +326,26 @@
       drawGridOverlay(rows, cols);
     });
 
+    ["marginTop", "marginBottom", "marginLeft", "marginRight"].forEach(id => {
+      document.getElementById(id).addEventListener("input", () => {
+        drawGridOverlay(rows, cols);
+      });
+    });
+
     function estimateGridLines(imageData, horizontal = true) {
-      const size = horizontal ? canvas.height : canvas.width;
-      const orthogonal = horizontal ? canvas.width : canvas.height;
+      // Calculate based on the original image dimensions
+      const scale = currentZoom / 100;
+      const size = horizontal ? originalHeight : originalWidth;
+      const orthogonal = horizontal ? originalWidth : originalHeight;
       const projection = [];
 
       for (let i = 0; i < size; i++) {
         let sum = 0;
         for (let j = 0; j < orthogonal; j++) {
-          const x = horizontal ? j : i;
-          const y = horizontal ? i : j;
+          // Convert to canvas coordinates
+          const x = Math.floor((horizontal ? j : i) * (canvas.width / originalWidth));
+          const y = Math.floor((horizontal ? i : j) * (canvas.height / originalHeight));
+
           const index = (y * canvas.width + x) * 4;
           const r = imageData.data[index];
           const g = imageData.data[index + 1];
@@ -251,60 +373,152 @@
     }
 
     function drawGridOverlay(rows, cols) {
-      ctx.drawImage(image, 0, 0);
+      // Clear canvas and draw image at current zoom level
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
       ctx.strokeStyle = 'rgba(231,76,60,0.65)';
-      ctx.lineWidth = 1.4;
-      const cellWidth = canvas.width / cols;
-      const cellHeight = canvas.height / rows;
+      ctx.lineWidth = 1.2;
 
+      // Get margin values
+      const top = parseInt(document.getElementById("marginTop").value) || 0;
+      const bottom = parseInt(document.getElementById("marginBottom").value) || 0;
+      const left = parseInt(document.getElementById("marginLeft").value) || 0;
+      const right = parseInt(document.getElementById("marginRight").value) || 0;
+
+      // Calculate grid dimensions based on current zoom
+      const scale = currentZoom / 100;
+      const scaledTop = top * scale;
+      const scaledBottom = bottom * scale;
+      const scaledLeft = left * scale;
+      const scaledRight = right * scale;
+
+      const gridWidth = canvas.width - scaledLeft - scaledRight;
+      const gridHeight = canvas.height - scaledTop - scaledBottom;
+
+      const cellWidth = gridWidth / cols;
+      const cellHeight = gridHeight / rows;
+
+      // Draw horizontal grid lines
       for (let i = 0; i <= rows; i++) {
-        const y = i * cellHeight;
+        const y = scaledTop + i * cellHeight;
         ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
+        ctx.moveTo(scaledLeft, y);
+        ctx.lineTo(canvas.width - scaledRight, y);
         ctx.stroke();
       }
+
+      // Draw vertical grid lines
       for (let j = 0; j <= cols; j++) {
-        const x = j * cellWidth;
+        const x = scaledLeft + j * cellWidth;
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
+        ctx.moveTo(x, scaledTop);
+        ctx.lineTo(x, canvas.height - scaledBottom);
         ctx.stroke();
       }
     }
 
     function decodeImage() {
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      // Temporarily set canvas to original size for accurate pixel reading
+      const currentCanvasWidth = canvas.width;
+      const currentCanvasHeight = canvas.height;
 
+      // Store current zoom level
+      const scale = currentZoom / 100;
+
+      // Get margin values
+      const top = parseInt(document.getElementById("marginTop").value) || 0;
+      const bottom = parseInt(document.getElementById("marginBottom").value) || 0;
+      const left = parseInt(document.getElementById("marginLeft").value) || 0;
+      const right = parseInt(document.getElementById("marginRight").value) || 0;
+
+      // Get rows and columns
       rows = parseInt(document.getElementById("rows").value);
       cols = parseInt(document.getElementById("cols").value);
 
+      // Auto-detect rows and columns if not provided
       if (!rows || !cols) {
+        // Temporarily restore original size for detection
+        canvas.width = originalWidth;
+        canvas.height = originalHeight;
+        ctx.drawImage(image, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
         rows = estimateGridLines(imageData, true);
         cols = estimateGridLines(imageData, false);
         document.getElementById("rows").value = rows;
         document.getElementById("cols").value = cols;
+
+        // Restore zoomed size
+        canvas.width = currentCanvasWidth;
+        canvas.height = currentCanvasHeight;
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
       }
 
+      // Draw grid at current zoom level
       drawGridOverlay(rows, cols);
 
-      const cellWidth = canvas.width / cols;
-      const cellHeight = canvas.height / rows;
+      // Calculate cell dimensions based on original size
+      const gridWidth = originalWidth - left - right;
+      const gridHeight = originalHeight - top - bottom;
+      const cellWidth = gridWidth / cols;
+      const cellHeight = gridHeight / rows;
+
+      // Temporarily restore original size for accurate pixel reading
+      canvas.width = originalWidth;
+      canvas.height = originalHeight;
+      ctx.drawImage(image, 0, 0);
+
       let bits = [];
       let bitGrid = "";
 
       for (let r = 0; r < rows; r++) {
         let rowBits = "";
         for (let c = 0; c < cols; c++) {
-          const x = Math.floor(c * cellWidth + cellWidth / 2);
-          const y = Math.floor(r * cellHeight + cellHeight / 2);
+          const x = Math.min(
+            originalWidth - 1,
+            Math.floor(left + c * cellWidth + cellWidth / 2)
+          );
+          const y = Math.min(
+            originalHeight - 1,
+            Math.floor(top + r * cellHeight + cellHeight / 2)
+          );
+
           const pixel = ctx.getImageData(x, y, 1, 1).data;
           const brightness = (pixel[0] + pixel[1] + pixel[2]) / 3;
           const bit = brightness < 128 ? "1" : "0";
+
           rowBits += bit;
           bits.push(bit);
         }
         bitGrid += rowBits + "\n";
+      }
+
+      // Restore zoomed size and redraw
+      canvas.width = currentCanvasWidth;
+      canvas.height = currentCanvasHeight;
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      drawGridOverlay(rows, cols);
+
+      // If debug dots are enabled, show them at current zoom level
+      if (document.getElementById("showDebugDots").checked) {
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const origX = left + c * cellWidth + cellWidth / 2;
+            const origY = top + r * cellHeight + cellHeight / 2;
+
+            // Scale to current zoom level
+            const x = origX * scale;
+            const y = origY * scale;
+
+            const idx = r * cols + c;
+            const bit = bits[idx];
+
+            ctx.beginPath();
+            ctx.arc(x, y, 2 * scale, 0, 2 * Math.PI);
+            ctx.fillStyle = bit === "1" ? "lime" : "red";
+            ctx.fill();
+          }
+        }
       }
 
       function bitsToAscii(bits) {
@@ -351,7 +565,6 @@
       const binaryTextarea = document.getElementById("binaryGrid");
       binaryTextarea.style.height = "auto"; // Reset height
       binaryTextarea.style.height = binaryTextarea.scrollHeight + "px"; // Set to fit content
-
     }
   </script>
 </body>
