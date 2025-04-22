@@ -5,26 +5,181 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Binary Image Decoder</title>
   <style>
-    body { font-family: sans-serif; padding: 1em; }
-    canvas { border: 1px solid #ccc; margin-top: 1em; }
-    textarea { width: 100%; height: 100px; margin-top: 1em; }
+    :root {
+      --primary: #042326;
+      --secondary: #0A3A40;
+      --accent: #e74c3c;
+      --light: #ecf0f1;
+      --dark: #34495e;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: var(--light);
+      font-family: 'Segoe UI', 'Roboto', 'Helvetica', Arial, sans-serif;
+      min-height: 100vh;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2em 0;
+      box-sizing: border-box;
+      min-height: 100vh;
+    }
+    h1 {
+      margin-bottom: 1em;
+      font-size: 2.3em;
+      color: var(--accent);
+      text-shadow: 0 2px 12px #0006;
+      letter-spacing: 1px;
+    }
+    .container {
+      background: var(--dark);
+      padding: 2em 2.5em 2.5em 2.5em;
+      border-radius: 2em;
+      box-shadow: 0 4px 40px #0008, 0 1.5px 10px #0a3a4055;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 900px;
+      max-width: 97vw;
+      margin-bottom: 2em;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      color: var(--light);
+      margin: 1em 0 0.5em 0;
+      letter-spacing: 0.02em;
+    }
+    input[type="file"] {
+      background: var(--light);
+      border-radius: 0.5em;
+      padding: 0.25em;
+      margin-left: 0.7em;
+      font-size: 1em;
+    }
+    input[type="number"] {
+      width: 4em;
+      padding: 0.2em 0.4em;
+      border: 1px solid var(--secondary);
+      border-radius: 0.6em;
+      font-size: 1.1em;
+      background: var(--light);
+      color: var(--primary);
+      margin: 0 1em 0 0.3em;
+      transition: border 0.2s;
+    }
+    input[type="number"]:focus {
+      outline: none;
+      border: 2px solid var(--accent);
+    }
+    .inline-inputs {
+  display: flex;
+  gap: 1em;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap; /* optional: allows stacking on narrow screens */
+}
+
+.inline-inputs label {
+  margin: 0.5em 0;
+}
+
+    button {
+      margin: 1.4em 0 1em 0;
+      padding: 0.7em 2.2em;
+      font-size: 1.1em;
+      font-weight: 600;
+      color: var(--light);
+      background: linear-gradient(90deg, var(--accent) 60%, #f86f63 100%);
+      border: none;
+      border-radius: 1.5em;
+      box-shadow: 0 4px 12px #0003;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+    }
+    button:hover {
+      background: linear-gradient(90deg, #ff6550 30%, var(--accent) 100%);
+      transform: translateY(-1px) scale(1.03);
+      box-shadow: 0 7px 24px #0005;
+    }
+    canvas {
+      display: block;
+      margin: 1em 0 0.4em 0;
+      background: var(--light);
+      border-radius: 1em;
+      border: 2px solid var(--accent);
+      box-shadow: 0 1px 8px #0002;
+      max-width: 100%;
+      height: auto;
+      transition: box-shadow 0.2s;
+    }
+    textarea {
+      width: 100%;
+      height: 90px;
+      margin-top: 1.2em;
+      padding: 0.8em 1em;
+      font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+      font-size: 1.09em;
+      background: #0a3a4033;
+      border-radius: 1em;
+      border: 1px solid #1b5159;
+      color: var(--light);
+      box-shadow: 0 1px 8px #0002;
+      resize: vertical;
+      outline: none;
+      transition: border 0.2s;
+    }
+    textarea:focus {
+      border: 2px solid var(--accent);
+      background: #12343844;
+    }
+    /* Responsive */
+    @media (max-width: 600px) {
+      .container {
+        padding: 1.1em 0.7em 1.5em 0.7em;
+        width: 99vw;
+      }
+      h1 {
+        font-size: 1.2em;
+      }
+      textarea { font-size: 1em; }
+      button { padding: 0.7em 1em; font-size: 1em; }
+    }
   </style>
 </head>
 <body>
   <h1>Binary Image Decoder</h1>
-
-  <label>Upload Image: <input type="file" id="imageInput" accept="image/*" /></label><br><br>
-  <label>Rows: <input type="number" id="rows" value="10" /></label>
-  <label>Columns: <input type="number" id="cols" value="10" /></label>
-  <button onclick="decodeImage()">Decode</button>
-
-  <canvas id="canvas"></canvas>
-  <textarea id="output" readonly></textarea>
-
+  <div class="container">
+    <label>Upload Image:
+      <input type="file" id="imageInput" accept="image/*" />
+    </label>
+    <div class="inline-inputs">
+      <label>Rows:
+        <input type="number" id="rows" value="" placeholder="Auto" />
+      </label>
+      <label>Columns:
+        <input type="number" id="cols" value="" placeholder="Auto" />
+      </label>
+    </div>
+    <button onclick="decodeImage()">Decode</button>
+    <canvas id="canvas"></canvas>
+    <label for="output">ASCII Output</label>
+    <textarea id="output" readonly></textarea>
+    <label for="binaryGrid">Binary Grid</label>
+    <textarea id="binaryGrid" readonly></textarea>
+  </div>
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     let image = new Image();
+    let rows = 0, cols = 0;
 
     document.getElementById("imageInput").addEventListener("change", function(e) {
       const file = e.target.files[0];
@@ -35,6 +190,13 @@
             canvas.width = image.width;
             canvas.height = image.height;
             ctx.drawImage(image, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            rows = estimateGridLines(imageData, true);
+            cols = estimateGridLines(imageData, false);
+            document.getElementById("rows").value = rows;
+            document.getElementById("cols").value = cols;
+            drawGridOverlay(rows, cols);
           };
           image.src = event.target.result;
         };
@@ -42,29 +204,149 @@
       }
     });
 
-    function decodeImage() {
-      const rows = parseInt(document.getElementById("rows").value);
-      const cols = parseInt(document.getElementById("cols").value);
-      if (!rows || !cols) {
-        alert("Please enter valid rows and columns.");
-        return;
+    document.getElementById("rows").addEventListener("input", () => {
+      rows = parseInt(document.getElementById("rows").value) || rows;
+      drawGridOverlay(rows, cols);
+    });
+
+    document.getElementById("cols").addEventListener("input", () => {
+      cols = parseInt(document.getElementById("cols").value) || cols;
+      drawGridOverlay(rows, cols);
+    });
+
+    function estimateGridLines(imageData, horizontal = true) {
+      const size = horizontal ? canvas.height : canvas.width;
+      const orthogonal = horizontal ? canvas.width : canvas.height;
+      const projection = [];
+
+      for (let i = 0; i < size; i++) {
+        let sum = 0;
+        for (let j = 0; j < orthogonal; j++) {
+          const x = horizontal ? j : i;
+          const y = horizontal ? i : j;
+          const index = (y * canvas.width + x) * 4;
+          const r = imageData.data[index];
+          const g = imageData.data[index + 1];
+          const b = imageData.data[index + 2];
+          const brightness = (r + g + b) / 3;
+          if (brightness < 128) sum++;
+        }
+        projection.push(sum);
       }
+
+      // Smooth projection and find peaks
+      const threshold = Math.max(...projection) * 0.5;
+      const bandStarts = [];
+      let inBand = false;
+      for (let i = 0; i < projection.length; i++) {
+        if (!inBand && projection[i] > threshold) {
+          bandStarts.push(i);
+          inBand = true;
+        } else if (inBand && projection[i] <= threshold) {
+          inBand = false;
+        }
+      }
+
+      return bandStarts.length;
+    }
+
+    function drawGridOverlay(rows, cols) {
+      ctx.drawImage(image, 0, 0);
+      ctx.strokeStyle = 'rgba(231,76,60,0.65)';
+      ctx.lineWidth = 1.4;
+      const cellWidth = canvas.width / cols;
+      const cellHeight = canvas.height / rows;
+
+      for (let i = 0; i <= rows; i++) {
+        const y = i * cellHeight;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      for (let j = 0; j <= cols; j++) {
+        const x = j * cellWidth;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+    }
+
+    function decodeImage() {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      rows = parseInt(document.getElementById("rows").value);
+      cols = parseInt(document.getElementById("cols").value);
+
+      if (!rows || !cols) {
+        rows = estimateGridLines(imageData, true);
+        cols = estimateGridLines(imageData, false);
+        document.getElementById("rows").value = rows;
+        document.getElementById("cols").value = cols;
+      }
+
+      drawGridOverlay(rows, cols);
 
       const cellWidth = canvas.width / cols;
       const cellHeight = canvas.height / rows;
-      let binary = "";
+      let bits = [];
+      let bitGrid = "";
 
       for (let r = 0; r < rows; r++) {
+        let rowBits = "";
         for (let c = 0; c < cols; c++) {
           const x = Math.floor(c * cellWidth + cellWidth / 2);
           const y = Math.floor(r * cellHeight + cellHeight / 2);
           const pixel = ctx.getImageData(x, y, 1, 1).data;
           const brightness = (pixel[0] + pixel[1] + pixel[2]) / 3;
-          binary += brightness < 128 ? "1" : "0";
+          const bit = brightness < 128 ? "1" : "0";
+          rowBits += bit;
+          bits.push(bit);
         }
+        bitGrid += rowBits + "\n";
       }
 
-      document.getElementById("output").value = binary;
+      function bitsToAscii(bits) {
+        let message = "";
+        const gridCols = cols;
+        const gridRows = rows;
+
+        const patterns = [
+          { w: 1, h: 8 },
+          { w: 2, h: 4 },
+          { w: 4, h: 2 },
+          { w: 8, h: 1 },
+        ];
+
+        for (const pattern of patterns) {
+          if (gridCols % pattern.w !== 0 || gridRows % pattern.h !== 0) continue;
+
+          const chars = [];
+          for (let y = 0; y + pattern.h <= gridRows; y += pattern.h) {
+            for (let x = 0; x + pattern.w <= gridCols; x += pattern.w) {
+              let byte = "";
+              for (let dy = 0; dy < pattern.h; dy++) {
+                for (let dx = 0; dx < pattern.w; dx++) {
+                  const idx = (y + dy) * gridCols + (x + dx);
+                  byte += bits[idx];
+                }
+              }
+              chars.push(String.fromCharCode(parseInt(byte, 2)));
+            }
+          }
+
+          if (chars.every(c => c.charCodeAt(0) >= 32 && c.charCodeAt(0) <= 126)) {
+            return chars.join("");
+          }
+        }
+
+        return "Unable to decode clean ASCII.";
+      }
+
+      document.getElementById("output").value = bitsToAscii(bits);
+      document.getElementById("binaryGrid").value = bitGrid.trim();
+      document.getElementById("output").focus();
     }
   </script>
 </body>
