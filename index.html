@@ -347,6 +347,11 @@
       document.getElementById("output").value = bitsToAscii(bits);
       document.getElementById("binaryGrid").value = bitGrid.trim();
       document.getElementById("output").focus();
+
+      const binaryTextarea = document.getElementById("binaryGrid");
+      binaryTextarea.style.height = "auto"; // Reset height
+      binaryTextarea.style.height = binaryTextarea.scrollHeight + "px"; // Set to fit content
+
     }
   </script>
 </body>
